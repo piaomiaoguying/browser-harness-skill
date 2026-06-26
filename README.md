@@ -48,7 +48,19 @@ chrome://inspect/#remote-debugging
 
 勾选 **Allow remote debugging**，Chrome 144+ 首次连接时点 Allow。
 
-### 4. 试一下
+### 4. macOS 用户 Edge 长期 CDP → 一键脚本
+
+每次手动启动带 `--remote-debugging-port` 很麻烦？运行一次永久解决：
+
+```bash
+bash skills/browser-harness/tools/setup-edge-cdp.sh
+```
+
+脚本会自动创建带 CDP 调试的 Edge 包装应用、复制图标、注册 URL scheme、设为默认浏览器。之后 Dock 上点 Edge 启动就自带 CDP。
+
+> 支持 `--port 9223` 改端口、`--name "Edge CDP"` 改名称、`--no-default` 跳过默认浏览器设置。
+
+### 5. 试一下
 
 在 Claude Code 里随便说一句话：
 
@@ -200,12 +212,18 @@ skills/browser-harness/
 │   ├── Top 5 高频 Gotchas
 │   └── 📖 按需加载路由表（"遇到 X → 去读 Y"）
 │
-└── guides/                           ← 按需加载（遇到对应场景才读）
-    ├── virtual-rendering.md          虚拟渲染检测 + 应对策略
-    ├── scroll-discovery.md           滚动容器发现 + 内容提取 pipeline
-    ├── memory-extraction.md          PWA 缓存 / Redux / React fiber 提取
-    ├── cdp-reference.md              CDP 底层 API 参考
-    └── debugging.md                  js() 调试 + 管道故障诊断
+├── guides/                           ← 按需加载（遇到对应场景才读）
+│   ├── virtual-rendering.md          虚拟渲染检测 + 应对策略
+│   ├── scroll-discovery.md           滚动容器发现 + 内容提取 pipeline
+│   ├── memory-extraction.md          PWA 缓存 / Redux / React fiber 提取
+│   ├── cdp-reference.md              CDP 底层 API 参考
+│   └── debugging.md                  js() 调试 + 管道故障诊断
+│
+├── tools/                            ← 辅助脚本
+│   └── setup-edge-cdp.sh             macOS Edge CDP 一键配置
+│
+└── references/                       ← 参考资料
+    └── install.md                    详细安装步骤
 ```
 
 **效果**：简单任务只加载 5 KB（省 72%），复杂场景按需叠加 2~5 KB 的专项指南。
