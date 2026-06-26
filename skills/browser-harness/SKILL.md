@@ -13,16 +13,16 @@ Domain skills are off by default. Set `BH_DOMAIN_SKILLS=1` to enable; see bottom
 
 ## Usage
 
-**Linux / macOS:** `browser-harness <<'PY' ... PY` (heredoc)
+**单行脚本（所有平台）：** `echo "print(page_info())" | browser-harness`
 
-**Windows (PowerShell):**
-```powershell
-# 单行
-"print(page_info())" | browser-harness
-# 多行（推荐写文件再 pipe）
-Set-Content script.py -Value "..."
-Get-Content script.py | browser-harness
+**多行脚本（所有平台通用，推荐）：** 先写 `.py` 文件，再用 `cat` pipe：
+```bash
+# 1. 写脚本到文件（在 Claude 中用 Write 工具）
+# 2. cat 管道执行
+cat /path/to/script.py | browser-harness
 ```
+
+> ⚠️ macOS 上 heredoc (`<<'PY'`) 不可靠，经常无声失败。多行脚本一律走**写文件 → cat pipe** 路线。
 
 - Helpers are pre-imported. `new_tab(url)` 创建并切换；`goto_url(url)` 当前页导航。
 - **首次执行超时 30~60 秒**（daemon auto-start + CDP 握手）。
@@ -71,14 +71,17 @@ Get-Content script.py | browser-harness
   ```
 - [ ] 若有残留：`taskkill /F /FI "CommandLine like '%browser_harness%daemon%'"`（macOS: `pkill -f "browser_harness.daemon"`）
 
-## Gotchas（Top 6 高频）
+## Gotchas
 
-1. **永远不要假设当前标签页就是目标页** — 即使用户说"看我打开的 X 页面"，也必须先 `list_tabs()`。`page_info()` 可能返回完全不同的页面。
-2. **PowerShell 不支持 heredoc** — 多行脚本必须写文件 + `Get-Content` pipe。管道无声失败时先 `"print('ok')" | browser-harness` 诊断链路。
-3. **切换标签页必须用 `switch_tab()`** — 手动 `cdp("Target.activateTarget")` 不会更新 harness session 绑定，后续 `js()` 仍指向旧页。
-4. **`js()` 多语句必须用 IIFE 并立即调用** — `js("() => { return x; }")` 返回 `{}`。正确：`js("(() => { return x; })()")`
-5. **首次执行慢是正常的** — daemon + CDP 握手需 30~60s，超时设 60s。
-6. **忘记清理 daemon** — 每次任务结束必须 `--reload`。
+1. **macOS heredoc 不可靠** — `<<'PY'` 经常无声失败（无输出无报错），统一用 `echo` / `cat file | browser-harness`。
+2. **`printf` 含 `\n` 可能丢失输出** — 用 `echo` 单行或 `cat file` pipe 替代。
+3. **pipe 多行中的引号冲突** — 管道传递的多行脚本里，Python 字符串内的引号容易与 shell 转义冲突。解决：**写 `.py` 文件再 `cat | browser-harness`**，避免一切 shell 转义问题。
+4. **`js()` 内嵌多行 JS 函数** — Python 字符串字面量里直接写多行 JS 会报 `SyntaxError: unterminated string literal`。用 Python 三引号 `'''...'''` 包裹 JS 代码，换行不再打断字符串。
+5. **永远不要假设当前标签页就是目标页** — 即使用户说"看我打开的 X 页面"，也必须先 `list_tabs()`。`page_info()` 可能返回完全不同的页面。
+6. **切换标签页必须用 `switch_tab()`** — 手动 `cdp("Target.activateTarget")` 不会更新 harness session 绑定，后续 `js()` 仍指向旧页。
+7. **`js()` 多语句必须用 IIFE 并立即调用** — `js("() => { return x; }")` 返回 `{}`。正确：`js("(() => { return x; })()")`
+8. **首次执行慢是正常的** — daemon + CDP 握手需 30~60s，超时设 60s。
+9. **忘记清理 daemon** — 每次任务结束必须 `--reload`。
 
 > 遇到其他问题？详见 `guides/debugging.md`。
 

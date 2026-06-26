@@ -39,10 +39,10 @@ CDP 序列化深层嵌套对象时会报此错。
 js('document.getElementById("root").__reactFiber$xxx')
 
 # ✅ 正确：只提取需要的字段
-js('(() => { \
-  const fiber = document.getElementById("root").__reactFiber$xxx; \
-  return { tag: fiber?.tag, type: fiber?.type?.name }; \
-})()')
+js('''() => {
+  const fiber = document.getElementById("root").__reactFiber$xxx;
+  return { tag: fiber?.tag, type: fiber?.type?.name };
+}()''')
 ```
 
 ### IIFE 模板速查
@@ -57,29 +57,78 @@ js("(() => { const a = 1; const b = 2; return a + b; })()")
 # 异步
 js("(async () => { const r = await fetch('/api'); return r.json(); })()")
 
-# 返回数组/对象
-js('(() => { \
-  const items = document.querySelectorAll(".item"); \
-  return Array.from(items).map(el => el.innerText); \
-})()')
+# 返回数组/对象（多行用三引号）
+js('''(() => {
+  const items = document.querySelectorAll(".item");
+  return Array.from(items).map(el => el.innerText);
+})()''')
 ```
 
 ## Shell 管道故障
 
-### PowerShell heredoc 不可用
+### macOS heredoc 不可靠
 
-PowerShell 不支持 `<<'PY'` 语法。必须用管道或文件：
+macOS 上 `browser-harness <<'PY' ... PY` 经常**无声失败**——没有任何输出也没有报错，直接返回。原因疑似 shell 与 daemon stdin 交互问题。
 
-```powershell
-# 单行脚本
-"print(page_info())" | browser-harness
-
-# 多行脚本（推荐）
-Set-Content script.py -Value @"
-print(page_info())
+```bash
+# ❌ 不可靠，经常无声失败
+browser-harness <<'PY'
 print(list_tabs())
-"@
-Get-Content script.py | browser-harness
+PY
+
+# ✅ 单行：echo pipe
+echo "print(list_tabs())" | browser-harness
+
+# ✅ 多行：写文件 + cat pipe（所有平台通用，最可靠）
+cat script.py | browser-harness
+```
+
+### `printf` 含 `\n` 丢失输出
+
+`printf` 中的 `\n` 可能被 shell 解释后打断管道，导致无输出：
+
+```bash
+# ❌ 可能无输出
+printf 'print(list_tabs())\nprint(page_info())\n' | browser-harness
+
+# ✅ 用 echo 单行，或多行写文件 + cat
+echo 'print(list_tabs())' | browser-harness
+```
+
+### 管道多行脚本中的引号冲突
+
+Shell 管道传递多行脚本时，Python 字符串内的引号容易与 shell 转义规则冲突：
+
+```bash
+# ❌ f-string 中 info["url"] 的双引号被子 shell 解释
+printf 'info = page_info(); print(f"URL: {info[\"url\"]}")' | browser-harness
+# → SyntaxError: unexpected character after line continuation character
+```
+
+**根本解法：涉及任何复杂脚本，一律写 `.py` 文件再 cat pipe。**
+
+### Python 三引号包裹多行 JS
+
+`js()` 的参数是一个 JS 字符串。管道模式下 Python 字符串字面量里的换行会打断语法：
+
+```python
+# ❌ SyntaxError: unterminated string literal
+text = js("(() => {
+  const el = document.querySelector('.cls');
+  return el?.innerText || '';
+})()")
+
+# ✅ 用 Python 三引号包裹多行 JS
+text = js("""(() => {
+  const el = document.querySelector('.cls');
+  return el?.innerText || '';
+})()""")
+
+# ✅ 也可以单引号三引号（避免与 JS 内的双引号冲突）
+text = js('''(() => {
+  const el = document.querySelector('.cls');
+  return el?.innerText || '';
+})()''')
 ```
 
 ### 管道无声失败诊断
