@@ -1,6 +1,17 @@
 # 调试指南
 
-`js()` 返回值异常和 Shell 管道故障的诊断方法。
+`js()` 返回值异常、Shell 管道故障、`list_tabs()` 字段不匹配的诊断方法。
+
+## `list_tabs()` 返回结构
+
+每个元素是一个 dict：`{target_id, targetId, title, url}`。用 `target_id` 做 `switch_tab()`，**不要猜字段名**——不确定时先 `print(t)` 看完全部键名，一轮确认比猜错重试快。
+
+```python
+tabs = list_tabs()
+for t in tabs:
+    print(t)           # 先看有哪些字段
+# 然后用 t['target_id'] 切换
+```
 
 ## js() 返回值异常
 

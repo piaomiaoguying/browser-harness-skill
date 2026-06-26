@@ -39,8 +39,10 @@ Get-Content script.py | browser-harness
 
 ## Page Workflow
 
-1. **Pre-flight**: `ensure_real_tab()` 确保落在真实页面。注意它可能静默切换标签页。
-2. **确认标签页**: `list_tabs()` → `switch_tab(target)` — **必须用内置 helper，不能手动 CDP**
+1. **Pre-flight**:
+   - `list_tabs()` — **必须第一步执行，零例外。** 永远不要假设当前标签页就是目标页。`current_tab()` 返回的是 harness session 绑定页，**不是**浏览器前台标签页。
+   - `ensure_real_tab()` 确保落在真实页面。注意它可能静默切换标签页。
+2. **确认标签页**: `list_tabs()` → `switch_tab(target_id)` — **必须用内置 helper，不能手动 CDP**。`list_tabs()` 返回 `[{target_id, targetId, title, url}]`，用 `target_id` 做切换。
 3. **导航**: `goto_url(url)` 或 `new_tab(url)` → `wait_for_load()`
 4. **操作/提取**: 见下方策略
 5. **清理**: `browser-harness --reload` — 任务完成的最后一个动作永远是清理 daemon
@@ -48,6 +50,8 @@ Get-Content script.py | browser-harness
 > ⚠️ `current_tab()` 返回的是 harness session 绑定页，**不是**浏览器前台标签页。每次脚本开始都应 `list_tabs()` 确认。
 
 ## 数据提取策略（按优先级）
+
+**提取前必须先验证页面有内容**：`js("document.body.innerText.length")` 应 > 0。跳过验证直接取内容是最常见的浪费根源。
 
 1. **`js()`** — DOM 提取、JS 变量、内存数据。始终优先。多语句用 IIFE：`js("(() => { ... })()")`
 2. **`page_info()`** — `{url, title, w, h, sx, sy, pw, ph}`，了解页面尺寸
@@ -67,13 +71,14 @@ Get-Content script.py | browser-harness
   ```
 - [ ] 若有残留：`taskkill /F /FI "CommandLine like '%browser_harness%daemon%'"`（macOS: `pkill -f "browser_harness.daemon"`）
 
-## Gotchas（Top 5 高频）
+## Gotchas（Top 6 高频）
 
-1. **PowerShell 不支持 heredoc** — 多行脚本必须写文件 + `Get-Content` pipe。管道无声失败时先 `"print('ok')" | browser-harness` 诊断链路。
-2. **切换标签页必须用 `switch_tab()`** — 手动 `cdp("Target.activateTarget")` 不会更新 harness session 绑定，后续 `js()` 仍指向旧页。
-3. **`js()` 多语句必须用 IIFE 并立即调用** — `js("() => { return x; }")` 返回 `{}`。正确：`js("(() => { return x; })()")`
-4. **首次执行慢是正常的** — daemon + CDP 握手需 30~60s，超时设 60s。
-5. **忘记清理 daemon** — 每次任务结束必须 `--reload`。
+1. **永远不要假设当前标签页就是目标页** — 即使用户说"看我打开的 X 页面"，也必须先 `list_tabs()`。`page_info()` 可能返回完全不同的页面。
+2. **PowerShell 不支持 heredoc** — 多行脚本必须写文件 + `Get-Content` pipe。管道无声失败时先 `"print('ok')" | browser-harness` 诊断链路。
+3. **切换标签页必须用 `switch_tab()`** — 手动 `cdp("Target.activateTarget")` 不会更新 harness session 绑定，后续 `js()` 仍指向旧页。
+4. **`js()` 多语句必须用 IIFE 并立即调用** — `js("() => { return x; }")` 返回 `{}`。正确：`js("(() => { return x; })()")`
+5. **首次执行慢是正常的** — daemon + CDP 握手需 30~60s，超时设 60s。
+6. **忘记清理 daemon** — 每次任务结束必须 `--reload`。
 
 > 遇到其他问题？详见 `guides/debugging.md`。
 
