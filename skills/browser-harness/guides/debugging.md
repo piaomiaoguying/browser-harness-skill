@@ -164,3 +164,25 @@ print(js("'hello'"))                              # 应输出 hello，不是 {}
 # Step 4: 提取精确内容
 print(js("document.querySelector('.target-class')?.innerText || ''"))
 ```
+
+### SVG 元素的 `className` 陷阱
+
+`querySelectorAll` 可能匹配到 SVG 元素（如搜索图标），此时 `e.className` 返回的是 `SVGAnimatedString` 对象，不是普通字符串。直接调用 `.slice()`、`.includes()` 等字符串方法会抛 `TypeError: ... is not a function`。
+
+```python
+# ❌ 报错 — 匹配到的 SVG 元素 className 不是字符串
+js("""(() => {
+  const els = document.querySelectorAll('[class*="foo"]');
+  return Array.from(els).map(e => ({ class: e.className.slice(0, 50) }));
+})()""")
+
+# ✅ 用 String() 强制转换，对所有元素类型都安全
+js("""(() => {
+  const els = document.querySelectorAll('[class*="foo"]');
+  return Array.from(els).map(e => ({ class: String(e.className || '').slice(0, 50) }));
+})()""")
+```
+
+**何时会触发：** 任何带 SVG 图标的页面（搜索按钮、社交媒体图标、装饰图形等），只要选择器同时命中 HTML 和 SVG 元素就可能出现。`className` 是最高频受害者，其他属性如 `.class`、`.style` 对 SVG 行为也不同。
+
+**排查方法：** 看到 `TypeError: ... is not a function` 且表达式用到了 `.className`，检查 `querySelectorAll` 的范围是否可能包含 `<svg>` — 打印 `e.tagName` 即可确认。
