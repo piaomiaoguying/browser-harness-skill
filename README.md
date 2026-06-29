@@ -56,9 +56,11 @@ chrome://inspect/#remote-debugging
 bash skills/browser-harness/tools/setup-edge-cdp.sh
 ```
 
-脚本会自动创建带 CDP 调试的 Edge 包装应用、复制图标、注册 URL scheme、设为默认浏览器。之后 Dock 上点 Edge 启动就自带 CDP。
+脚本会自动创建带 CDP 调试的 Edge 包装应用、强制以原生 ARM64 架构启动（避免 Rosetta 2 转译带来的 CPU 开销和卡顿）、复制图标、注册 URL scheme、设为默认浏览器。之后 Dock 上点 Edge 启动就自带 CDP。
 
 > 支持 `--port 9223` 改端口、`--name "Edge CDP"` 改名称、`--no-default` 跳过默认浏览器设置。
+>
+> **Apple Silicon 用户注意**：如果之前安装的是 x86_64 版 Edge，建议先到 [Edge 官网](https://www.microsoft.com/edge) 下载 ARM64 原生版安装，否则即使加了 `arch -arm64` 也无 arm64 slice 可用。
 
 ### 5. 试一下
 

@@ -52,7 +52,7 @@ mkdir -p "$RESOURCES_DIR"
 # ── 2. 写入启动脚本 ───────────────────────────────────────
 cat > "${MACOS_DIR}/${WRAPPER_NAME}" << SCRIPT
 #!/bin/bash
-exec "${EDGE_PATH}/Contents/MacOS/Microsoft Edge" --remote-debugging-port=${PORT} "\$@"
+exec /usr/bin/arch -arm64 "${EDGE_PATH}/Contents/MacOS/Microsoft Edge" --remote-debugging-port=${PORT} "\$@"
 SCRIPT
 chmod +x "${MACOS_DIR}/${WRAPPER_NAME}"
 
