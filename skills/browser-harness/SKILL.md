@@ -27,6 +27,7 @@ cat /path/to/script.py | browser-harness
 - Helpers are pre-imported. `new_tab(url)` 创建并切换；`goto_url(url)` 当前页导航。
 - **首次执行超时 30~60 秒**（daemon auto-start + CDP 握手）。
 - **任务完成后必须清理**：`browser-harness --reload`。
+- **后台静默模式**：设 `BH_BACKGROUND=1`，浏览器不抢焦点、不切标签页。`new_tab()` 在后台创建标签页，所有操作（JS 执行、DOM 操作、点击输入、截图）在后台标签页中正常工作，CDP 协议天然支持。
 
 ## Local Chrome
 
@@ -82,6 +83,7 @@ cat /path/to/script.py | browser-harness
 7. **`js()` 多语句必须用 IIFE 并立即调用** — `js("() => { return x; }")` 返回 `{}`。正确：`js("(() => { return x; })()")`
 8. **首次执行慢是正常的** — daemon + CDP 握手需 30~60s，超时设 60s。
 9. **忘记清理 daemon** — 每次任务结束必须 `--reload`。
+10. **后台静默模式不激活标签页** — 设 `BH_BACKGROUND=1` 后，`switch_tab()` 不会调用 `Target.activateTarget`，标签页状态仅通过 CDP session 绑定更新（无窗口焦点变化）。如需验证当前绑定，用 `current_tab()`。
 
 > 遇到其他问题？详见 `guides/debugging.md`。
 
