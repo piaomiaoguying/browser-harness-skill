@@ -27,7 +27,7 @@ cat /path/to/script.py | browser-harness
 - Helpers are pre-imported. `new_tab(url)` 创建并切换；`goto_url(url)` 当前页导航。
 - **首次执行超时 30~60 秒**（daemon auto-start + CDP 握手）。
 - **任务完成后必须清理**：`browser-harness --reload`。
-- **后台静默模式**：设 `BH_BACKGROUND=1`，浏览器不抢焦点、不切标签页。`new_tab()` 在后台创建标签页，所有操作（JS 执行、DOM 操作、点击输入、截图）在后台标签页中正常工作，CDP 协议天然支持。
+- **后台静默模式（强制，必须执行）**：**每次 web 交互脚本，必须在最开头（import 之前）写入以下代码块。这是硬性要求，不存在例外。** 读取项目中的 `tools/agent_helpers.py` 获取最新代码，将其内容直接写入脚本文件顶部（移除文档字符串，只保留 import 和之后的代码），确保 `BH_BACKGROUND` 在 switch_tab / new_tab 被调用前已设为 `"1"`。效果：不抢 OS 焦点、不切换可见标签页、新标签页后台创建。所有其他操作通过 CDP 在后台正常工作。
 
 ## Local Chrome
 
